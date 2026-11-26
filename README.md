@@ -17,6 +17,7 @@ A walk through the Army aeronautical laboratory at Langley Field, Virginia, as i
 | WASD or arrows to walk, Shift to run | Left thumb to walk, push to the rim to run |
 | Mouse to look | Right thumb to look |
 | F flashlight | Light button |
+| T to check your watch | It shows on its own at each chime |
 | Esc or P to pause | Button at the top right |
 
 Settings and sound are in the pause menu. On iPhone, use Share, then Add to Home Screen, for full screen.
