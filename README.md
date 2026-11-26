@@ -4,29 +4,50 @@ A walkable, real-time reconstruction of the Army aeronautical laboratory that Al
 
 **Live:** https://rensolvyn.github.io/langley-1919/
 
+## Two ways to play
+
+**Explore.** Walk the laboratory by day or by night, meet the staff, and find the eight field notes. Night, lamps and the flashlight are in the pause menu.
+
+**Survive the night.** The building is dark and every door has locked behind you. Eight pages of a 1919 field journal lie by candlelight in rooms across both floors. Gather all of them and the front doors open. Something tall lives in the corridors. It hears you run, it sees your flashlight, and it is slower while you look straight at it. Turning the flashlight off hides you and blinds you. If it catches you, the night carries on from your last page.
+
 ## Controls
 
 | Desktop | Phone |
 | --- | --- |
-| WASD or arrows to walk, Shift to run | Left thumb anywhere on the left half to walk. Push to the rim to run |
-| Mouse to look (click to capture the pointer) | Right thumb to look. Look speed is in the Map panel |
+| WASD or arrows to walk, Shift to run | Left thumb anywhere on the left half to walk. Push toward the rim to run |
+| Mouse to look (click to capture the pointer) | Right thumb to look |
+| Esc or P pauses: Game, Settings and Sound | The round button at the top right pauses |
+| F turns the flashlight on or off | Light button (night mode) |
 | E or Enter to move a conversation on | Tap to move a conversation on or close a note |
-| Space to jump | Jump button |
-| V cycles 1st, 3rd and 2nd person views | View button |
-| M opens the map with quick travel | Map button |
-| N switches between day and night, L turns the lamps on or off | Night button (a Lamps button appears at night); the Map panel also has a Night switch |
+| Space to jump | Jump button (explore) |
+| V cycles 1st, 3rd and 2nd person views (explore) | In the pause menu |
+| M opens the map | In the pause menu |
+| N day or night, L lamps (explore) | In the pause menu |
 
-Walk up to anyone to hear what they have to say. Eight field notes are hidden across the wings and both floors, and the map marks the ones you have found.
+**Settings** (saved on the device): look speed, invert look, field of view, head bob, view levelling while walking (phones, off by default), graphics quality (Auto, Low, Medium, High), traced reflections, frame rate readout, vibration, and separate master, music and effects volumes. The Sound tab shows whether audio is actually playing and has a test tone.
+
+**Full screen.** Android goes full screen when the walk starts. iPhone Safari does not allow web pages to hide its bars; use Share, then Add to Home Screen, and open it from the home screen for a full-screen app.
+
+**No sound on an iPhone?** The page asks iOS for the playback audio session, so the silent switch should not mute it; if you still hear nothing, check the volume and press Play a test tone in the Sound tab.
 
 ### Phone controls, and why they are built this way
 
 - **Floating stick.** It appears wherever your left thumb lands. If your thumb slides past the rim, the stick follows it, so you never run out of travel. A radial dead zone stops drift, and a power curve makes a small push a slow, precise walk.
-- **Screen-normalised look.** A swipe across the long side of the screen turns about 170 degrees on any phone or tablet. The gain scales with field of view. Slow drags aim finely and quick flicks turn fast. Look input is applied on the touch event with no smoothing, so it adds no lag.
-- **Auto-level.** While you walk without touching the look side, the view eases back to level, the way console games re-centre.
+- **Screen-normalised look.** A swipe across the long side of the screen turns about 215 degrees at look speed 1.0 on any phone or tablet. The gain scales with field of view. Slow drags aim finely and quick flicks turn fast. Look input is applied on the touch event with no smoothing, so it adds no lag.
+- **Optional auto-level.** If you turn it on in Settings, the view eases back to level while you walk without touching the look side.
 - **Hor+ field of view.** In portrait the view widens, so you are not looking through a slot.
 - **Landscape first.** The walk is laid out for a phone held sideways: a wide view of each room and room for both thumbs. Held upright, a card asks you to turn the phone (you can carry on in portrait). On Android the screen also locks to landscape once the walk goes full screen.
 - **Thumb-safe layout.** Every button is at least 44 px and sits clear of the notch, the screen edges and the home indicator. Subtitles stay out of the thumb zones and never block a touch.
 - **Small things.** Light haptics on jump, hard landings and found notes (Android). The screen stays awake, Android goes full screen, and all input resets when the app goes to the background, so nothing sticks.
+
+## How the night mode is built
+
+- **Spaces derived, not placed.** The playable indoor region is found by a breadth-first walk over the walkable grid in which every step must clear the wall segments. Steps that leave it are clustered into doorways, and a door is hung in each. The front door is the doorway nearest the entrance hall. Pages go into rooms from the original room plans, spread across both floors. Nothing is hand-placed, so the same code works for another building.
+- **A creature with senses and a director above it.** The creature sees in a cone through the wall segments and hears footsteps by distance and loudness (walls muffle them). It roams, investigates noises, searches where it last saw you, chases along A* paths over the same walkable graph, and retreats. A director keeps a menace gauge, in the manner of survival-horror AI directors: sustained pressure sends the creature away to rest, long quiet brings it closer, and each page makes it faster and keener. After the last page it hunts you to the door.
+- **Staged moments.** The first sighting is choreographed: it crosses the far end of what you are looking at and is gone. A catch turns your head to it, narrows the view, and cuts to black.
+- **Light and sound as warnings.** Lamps and the flashlight falter when it is near. Its breath and growl follow it through an HRTF panner, footsteps drag and click, and a heartbeat rises with fear, which also tightens the vignette and drains colour. The score has a dread bed that grows with each page, a chase cue, a reveal sting and a resolution; the stems are cross-faded into seamless loops and level-matched at build time.
+- **Collision against walls, not a grid.** Near-vertical faces of the model are baked into 21,570 wall segments with height ranges, hashed in 1 m cells. The body is pushed out of them every simulation step, the third-person camera boom is ray-tested against them, and the creature uses the same test.
+- **Steady lighting.** Room probes cross-fade over 0.6 s, box projection fades in at a room's edge, and quality changes fade over half a second instead of switching, so reflections and shadowing never pop as you walk.
 
 ## How it looks real
 

@@ -17,8 +17,10 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const REPO = process.env.REPO || pkg.config.repo;
 const API = process.env.API_BASE || 'https://api.github.com';
 const TOKEN = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '').trim();
-const MSG = process.env.MSG || 'Release v' + pkg.version + ': night mode, moon, lamp layer, traced reflections with learned reconstruction, phone map layout';
-const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01EagPYq8MYyMV2Ph7vFriPN';
+const MSG = process.env.MSG || 'Release v' + pkg.version + ': Survive the night with an endless dream hallway, pause menu and settings, Run button, wall collision, sound fixes, steadier lighting, lighter downloads';
+// commit messages and file names that must never reach this public repository
+const TRAILER_RE = /^\s*(co-authored-by:.*(claude|anthropic)|claude-session:|generated with \[?claude)/i;
+const PRIVATE_RE = /(^|\/)(\.private|sim-errlog|errlog|\.claude)(\/|$)|errors\.jsonl$|(^|\/)CLAUDE\.md$/i;
 const TOKENS_URL = 'https://github.com/settings/tokens';
 
 const die = m => { console.error('\nSTOPPED: ' + m); process.exit(1); };
@@ -46,7 +48,7 @@ function git(args, { ok = false, capture = false } = {}) {
 }
 const gout = args => { const r = git(args, { ok: true, capture: true }); return r.status === 0 ? r.stdout.trim() : null; };
 
-step('1/7 GitHub token');
+step('1/8 GitHub token');
 if (!TOKEN) die('no token found. Run: export GITHUB_TOKEN=ghp_...  (a classic token with the repo scope from ' + TOKENS_URL + '), then npm run push again');
 const me = await api('GET', '/user');
 if (me.status === 401) die('GitHub rejected the token in GITHUB_TOKEN (expired or revoked). Make a new classic token with the repo scope at ' + TOKENS_URL + ', export it, and run npm run push again');
@@ -57,10 +59,10 @@ if (scopes.length && !scopes.includes('repo') && !scopes.includes('public_repo')
 const full = owner + '/' + REPO;
 console.log('token OK for ' + owner + (scopes.length ? ' (scopes: ' + scopes.join(', ') + ')' : ' (fine-grained token)'));
 
-step('2/7 Build check');
+step('2/8 Build check');
 { const r = spawnSync(process.execPath, ['scripts/check.mjs'], { stdio: 'inherit' }); if (r.status !== 0) die('the build check failed; nothing was pushed'); }
 
-step('3/7 Private error log (kept outside the repository)');
+step('3/8 Private error log (kept outside the repository)');
 {
   const src = path.join(root, '.private', 'sim-errlog'), dst = path.join(os.homedir(), 'sim-errlog');
   if (fs.existsSync(src)) {
@@ -74,7 +76,7 @@ step('3/7 Private error log (kept outside the repository)');
   } else console.log('no error log in this package');
 }
 
-step('4/7 Repository ' + full);
+step('4/8 Repository ' + full);
 let repo = await api('GET', '/repos/' + full);
 if (repo.status === 404) {
   repo = await api('POST', '/user/repos', { name: REPO, description: pkg.description, homepage: 'https://' + owner.toLowerCase() + '.github.io/' + REPO + '/', private: false });
@@ -84,7 +86,7 @@ if (repo.status === 404) {
 else die('could not read ' + full + ' (HTTP ' + repo.status + ': ' + repo.msg + ')');
 const branch = (repo.json && repo.json.default_branch) || 'main';
 
-step('5/7 Commit and push to ' + branch);
+step('5/8 History: remove assistant trailers from earlier commits');
 const url = process.env.REMOTE_URL || 'https://github.com/' + full + '.git';
 if (!fs.existsSync('.git')) git(['init', '-q', '-b', branch]);
 if (gout(['remote', 'get-url', 'origin']) === null) git(['remote', 'add', 'origin', url]); else git(['remote', 'set-url', 'origin', url]);
@@ -94,15 +96,46 @@ if (git(['fetch', '-q', 'origin', branch], { ok: true, capture: true }).status =
   git(['update-ref', 'refs/heads/' + branch, 'refs/remotes/origin/' + branch]);
   git(['reset', '-q']);
 }
+const base = gout(['rev-parse', '--verify', '-q', 'refs/remotes/origin/' + branch]);
+let rewrote = false;
+if (base) {
+  const msgs = gout(['log', '--format=%B%x00', 'refs/heads/' + branch]) || '';
+  if (msgs.split('\n').some(l => TRAILER_RE.test(l))) {
+    // rebuild each commit with the same tree, parents, authors and dates and a cleaned message (plumbing only, so the
+    // working folder is untouched), then push with a lease on the tip that was fetched
+    const revs = (gout(['rev-list', '--reverse', '--topo-order', 'refs/heads/' + branch]) || '').split('\n').filter(Boolean);
+    const map = new Map(); let tip = null;
+    for (const c of revs) {
+      const raw = spawnSync('git', ['cat-file', 'commit', c], { env: GENV, encoding: 'utf8' }).stdout || '';
+      const cut = raw.indexOf('\n\n'), head = raw.slice(0, cut), msg = raw.slice(cut + 2);
+      const tree = /^tree (\w+)/m.exec(head)[1], parents = [...head.matchAll(/^parent (\w+)/mg)].map(m => map.get(m[1]) || m[1]);
+      const au = /^author (.*) <(.*)> (\d+ [+-]\d{4})$/m.exec(head), cm = /^committer (.*) <(.*)> (\d+ [+-]\d{4})$/m.exec(head);
+      const clean = msg.split('\n').filter(l => !TRAILER_RE.test(l)).join('\n').replace(/\s+$/, '') + '\n';
+      const env = Object.assign({}, GENV, { GIT_AUTHOR_NAME: au[1], GIT_AUTHOR_EMAIL: au[2], GIT_AUTHOR_DATE: au[3], GIT_COMMITTER_NAME: cm[1], GIT_COMMITTER_EMAIL: cm[2], GIT_COMMITTER_DATE: cm[3] });
+      const args = ['commit-tree', tree]; for (const q of parents) args.push('-p', q);
+      const r = spawnSync('git', args, { env, input: clean, encoding: 'utf8' });
+      if (r.status !== 0) { process.stderr.write(r.stderr || ''); die('could not rewrite commit ' + c.slice(0, 7)); }
+      tip = r.stdout.trim(); map.set(c, tip);
+    }
+    git(['update-ref', 'refs/heads/' + branch, tip]); git(['reset', '-q']);
+    rewrote = true; console.log('removed assistant trailers from ' + revs.length + ' commit messages on ' + branch);
+  } else console.log('history is clean');
+} else console.log('new repository, no history yet');
+
+step('6/8 Commit and push to ' + branch);
 if (!gout(['config', 'user.email'])) {
   git(['config', 'user.name', me.json.name || owner]);
   git(['config', 'user.email', me.json.id + '+' + owner + '@users.noreply.github.com']);
 }
 git(['add', '-A']);
+{ const staged = (gout(['diff', '--cached', '--name-only']) || '').split('\n').filter(Boolean).filter(f => PRIVATE_RE.test(f));
+  if (staged.length) die('private files were about to be committed: ' + staged.slice(0, 5).join(', ') + '. They must stay out of this public repository'); }
 const changed = git(['diff', '--cached', '--quiet'], { ok: true, capture: true }).status !== 0;
-if (changed) git(['commit', '-q', '-m', MSG, '-m', TRAILER]); else console.log('no changes since the last push');
+if (changed) git(['commit', '-q', '-m', MSG]); else console.log('no changes since the last push');
 {
-  const p = git(['push', '-u', 'origin', 'HEAD:refs/heads/' + branch], { ok: true, capture: true });
+  const args = ['push', '-u', 'origin', 'HEAD:refs/heads/' + branch];
+  if (rewrote) args.splice(1, 0, '--force-with-lease=' + branch + ':' + base);
+  const p = git(args, { ok: true, capture: true });
   process.stdout.write((p.stdout || '') + (p.stderr || ''));
   if (p.status !== 0) {
     if (/workflow/i.test(p.stderr || '')) die('GitHub refused a change under .github/workflows; add the workflow scope to the token at ' + TOKENS_URL);
@@ -112,7 +145,7 @@ if (changed) git(['commit', '-q', '-m', MSG, '-m', TRAILER]); else console.log('
 }
 const sha = gout(['rev-parse', 'HEAD']);
 
-step('6/7 GitHub Pages (from ' + branch + ', root folder)');
+step('7/8 GitHub Pages (from ' + branch + ', root folder)');
 const want = { build_type: 'legacy', source: { branch, path: '/' } };
 let pages = await api('GET', '/repos/' + full + '/pages');
 if (pages.status === 404) {
@@ -128,7 +161,7 @@ if (pages.status === 404) {
   } else console.log('Pages already deploys from ' + branch + ' /');
 } else die('could not read the Pages settings (HTTP ' + pages.status + ': ' + pages.msg + ')');
 
-step('7/7 Waiting for the Pages build of ' + sha.slice(0, 7));
+step('8/8 Waiting for the Pages build of ' + sha.slice(0, 7));
 let done = false;
 for (let i = 0; i < 72 && !done; i++) {
   const b = await api('GET', '/repos/' + full + '/pages/builds/latest');
