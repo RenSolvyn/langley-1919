@@ -1,0 +1,4 @@
+node_modules/
+.private/
+_site/
+.DS_Store
