@@ -17,7 +17,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const REPO = process.env.REPO || pkg.config.repo;
 const API = process.env.API_BASE || 'https://api.github.com';
 const TOKEN = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '').trim();
-const MSG = process.env.MSG || 'Release v' + pkg.version + ': night mode update';
+const MSG = process.env.MSG || 'Release v' + pkg.version + ': game update';
 // commit messages and file names that must never reach this public repository
 const TRAILER_RE = /^\s*(co-authored-by:.*(claude|anthropic)|claude-session:|generated with \[?claude)/i;
 const PRIVATE_RE = /(^|\/)(\.private|sim-errlog|errlog|\.claude)(\/|$)|errors\.jsonl$|(^|\/)CLAUDE\.md$/i;
