@@ -21,8 +21,8 @@ A walk through the Army aeronautical laboratory at Langley Field, Virginia, as i
 | F flashlight | Light button |
 | T to check your watch | It shows on its own at each chime |
 | Q to ready the rocket tube once you find it, click to fire | Tube button readies it, the round button fires |
-| Firefight: click to fire, right-click to aim, R reload, 1 and 2 switch weapons, C crouch, Shift while aiming holds your breath, Tab scores | Round button fires, AIM, R, 1\|2 and C buttons |
-| Firefight drone: G to fly it, WASD to move, Space and C to climb and descend, mouse to turn and tilt the camera, click to drop the charge, G to return | DRN button, left thumb moves, UP and DN, round button drops |
+| Firefight: click to fire, right-click to aim, R reload, 1 and 2 switch weapons, C crouch, Shift while aiming holds your breath, Tab scores | Tap where you want to shoot, hold a finger still to keep firing, drag to look; AIM, R, C and 1\|2 on the right edge |
+| Firefight drone: G to fly it, WASD to move, Space and C to climb and descend, mouse to turn and tilt the camera, click to drop the charge, G to return | DRN button, left thumb moves, UP and DN, tap the view to drop |
 | Esc or P to pause | Button at the top right |
 
 Settings and sound are in the pause menu. On iPhone, use Share, then Add to Home Screen, for full screen.

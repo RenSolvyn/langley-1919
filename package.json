@@ -1,6 +1,6 @@
 {
   "name": "langley-1919",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "description": "Walkable real-time reconstruction of the 1919 Langley Field laboratory by Albert Kahn",
   "license": "MIT",
